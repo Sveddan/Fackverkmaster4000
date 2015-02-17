@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<!--
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+-->
+<html>
+    <head>
+        <title>Fackwerkmaster4000</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body>
+        <script src="math.js"></script>
+        <script src="numeric-1.2.6.js"></script>
+        <script type="text/javascript">
+           //Indata
+           var koord=(math.matrix([[0,0],[1,0],[0,-1]]));
+           var element=(math.matrix([[0,1],[1,2]]));
+           
+           
+           //Dom här ska komma från indatan ovan
+           var E=1;
+           var A=1;
+           
+           //Skapar en nollad global styvhetsmatris
+           var k=math.multiply(math.size(koord),2);
+           var v=math.subset(k,math.index(0));
+           var K=math.zeros(v,v);
+           var KE=K;//Kopierar nollstyvhetsmatrisen för att kunna spara varje expanderad elementstyvhetsmatris
+           
+           //Bestämmer hur många iterationer av loopen funktionen ska göra
+           //Det ska vara en gång per stångelement
+           var a=math.size(element);
+           var styrvar=math.subset(a,math.index(0));
+          
+           //Loop som skapar en expanderad elementstyvhetsmatris och asemblerar
+           //ihop den i den globala styvhetsmatrisen
+           for(n=0;n<styrvar;n++){
+           
+           //Nollar sparningsmatrisen för att undvika dubbelöversparning
+           var KE=math.zeros(v,v);
+           
+           //Skapar en nollad vektor som ska innehålla frihetsgradsnumreringen
+           var skoord=math.size(koord);
+           var s=math.subset(skoord,math.index(0));
+           var d=math.subset(skoord,math.index(1));
+           var j=math.multiply(s,d);
+           var frigrad_nr=math.zeros(math.size(koord));
+           
+           //Bestämmer vilket som ska va lägsta frihetsgraden
+           //Kanske underförstått att det borde vara 0...
+           var kolon=0;
+           var rad=0;
+           
+           //Gör en loop som tilldelar varje nodpunkt två frihetsgrader i stigande ordning
+           //dvs. punkt 1 kommer alltid ha frihetsgraderna 1,2 punkt 2 3,4 osv.
+           for (i=0; i<j;i++){
+               var frigrad_nr=math.subset(frigrad_nr,math.index(rad,kolon),i);
+               var kolon=kolon+1;
+               
+               //if-satser för att alternera mellan kolon 1 och 2
+               if(kolon==1){
+                   var rad=rad-1;
+               }
+               var rad=rad+1;
+               if (kolon==2){
+                   var kolon=0;
+               }
+           }
+           
+            //Tar fram start- och slutnod för element n utifrån indatan
+           var p1=math.subset(element,math.index(n,0));
+           var p2=math.subset(element,math.index(n,1));
+           
+           //Tar fram x,y-koord för element n utifrån indatan
+           var x1=math.subset(koord,math.index(p1,0));
+           var x2=math.subset(koord,math.index(p2,0));
+            
+           var y1=math.subset(koord,math.index(p1,1));
+           var y2=math.subset(koord,math.index(p2,1));
+           
+           //Beräknar längden på element n
+           var a=x2-x1;
+           var b=y2-y1;
+           var as=math.square(a);
+           var bs=math.square(b);
+           var L=math.sqrt(as+bs);
+           
+           //Skapar elementstyvhetsmatris för element n
+           //Bara en matematisk formel ifrån struk.mek.boken
+           var styv=(E*A)/L;
+           var Kbas=math.matrix([[1,-1],[-1,1]]);
+           var Kel=math.multiply(styv,Kbas);
+           
+           //Skapar transformationsmatris för element n
+           //Struk.mek.formel
+           var g=math.matrix([[a],[b]]);
+           var gt=math.transpose(g);
+           var cn=math.multiply(1/L,gt);
+           var cx=math.subset(cn,math.index(0,0));
+           var cy=math.subset(cn,math.index(0,1));
+           
+           var G=math.matrix([[cx,cy,0,0],[0,0,cx,cy]]);
+           
+           //Skapar global expanderad styvhetsmatris för element n
+           //Struk.mek.formel
+           var Gt=math.transpose(G);
+           var Ke=math.multiply(math.multiply(Gt,Kel),G);
+           
+           //Skapar en vektor på 4 element som innehåller frihetsgradderna för
+           //element n dvs. [startFx,startFy,slutFx,slutFy]
+           var a=math.subset(frigrad_nr,math.index(p1,0));
+           var b=math.subset(frigrad_nr,math.index(p1,1));
+           var AA=math.matrix([a,b]);
+           
+           var a=math.subset(frigrad_nr,math.index(p2,0));
+           var b=math.subset(frigrad_nr,math.index(p2,1));
+           var B=math.matrix([a,b]);
+           var AB=math.concat(AA,B);
+           
+           var rad=0;//tror den här är onödig. Den verkar inte göra nån skillnad...
+           
+           //Loop som skapar den expanderadde elementstyvhetsmatrisen KE
+           for(j=0;j<4;j++){
+               var rad=math.subset(AB,math.index(j));
+               for(i=0;i<4;i++){
+                   var kolon=math.subset(AB,math.index(i));
+                   var input=math.subset(Ke,math.index(j,i));
+                   var KE=math.subset(KE,math.index(rad,kolon),input);
+               
+               
+           }
+           
+           
+       }
+       
+       //Aderar ihop den expanderade elementstyvhetsmatrisen KE med den 
+       //globala styvhetsmatrisen K
+       var K=math.add(K,KE);
+        
+           
+    }      
+           
+          
+    var antal_noder=math.size(koord);
+    antal_noder=math.subset(antal_noder, math.index(0));    //Tar ut antal noder, kommer att behövas för loopar längre fram    
+    //var rakne_variabel1=math.zeros(antal_noder);       
+    var rakne_variabel=[];
+    
+    for (i=0; i<antal_noder; i++)
+    {
+        if ((math.subset(koord, math.index(i,0))==0) && (math.subset(koord, math.index(i,1))==0))
+            rakne_variabel=math.subset(rakne_variabel, math.index(i), i+1);
+    }
+    
+     for (i=0; i<antal_noder; i++)              //Dessa två loopar kollar vilka koordinater som är låsta
+    {                                               //genom att identifiera deras kolonn-nummer
+        if ((math.subset(koord, math.index(i,0))==0) && (math.subset(koord, math.index(i,1))==-1))
+            rakne_variabel=math.subset(rakne_variabel, math.index(i), i+1);
+    }
+    
+    for (i=0; i<antal_noder; i++)
+    {
+         if (rakne_variabel[i]==0)
+         {
+             rakne_variabel.splice(i,1)         //Skär bort nollor
+         }
+    }
+   
+  
+            document.write(rakne_variabel);
+            document.write("<br> <br>")
+            
+            for (i=0; i<math.size(rakne_variabel); i++)
+            {
+               rakne_variabel[i]=rakne_variabel[i]-1;           //Loop som tar bort en etta så att vi kan identifiera rätt rad
+            }                                                                   //i frigrad_nr
+            
+   
+            document.write(rakne_variabel);
+            document.write("<br> <br>");
+        
+            //Nu har vi i rakne_variabel vilka rader i frigrad_nr_(dvs vilka frihetsgrader) som ska reduceras.
+            //Återstår nu att plocka ut dessa frihetsgrader ur frigrad_nr matrisen. 
+            
+            var frihetsgrader_att_reducera=[];          //frihetsgrader_att_reducera=math.zeros(2*(math.size(rakne_variabel)))     Detta är VIKTIGT! genom att skriva 2*() 
+            var j=0;                                                                  //återgår vi till math.js format! dvs [0,0]!!
+            for (i=0; i<math.size(rakne_variabel); i++)
+            {
+                tillfallig_index=rakne_variabel[i]
+                term1=math.subset(frigrad_nr, math.index(tillfallig_index,0))       //Plockar ut värdet i första kolonnen i raden som beror på rakne_variabel[i]
+                term2=math.subset(frigrad_nr, math.index(tillfallig_index,1))       //Plockar värdet i andra kolonnen i raden som beror på rakne_variabel[i]
+                frihetsgrader_att_reducera[j]=term1
+                j++;
+                frihetsgrader_att_reducera[j]=term2
+                j++;
+                
+            }
+    
+    
+            document.write(frihetsgrader_att_reducera);             //Inte "math.js" format..
+            document.write("<br> <br>");
+            
+            for (i=0; i<(2*(antal_noder)); i++)     //Loopa över antal frihetsgrader 
+            {
+                
+            }
+            
+            
+            
+       // document.write(v);
+           document.write("<br> <br>");
+           
+           //Skapar en nollad reducerad styvhetsmatris med dimensionen n-oönskadefrihetsgrader
+            var size_K=math.size(K);
+            var index_K=math.subset(size_K,math.index(0));
+            var index_frihetsgrader_att_reducera=math.size(frihetsgrader_att_reducera);
+            var index_size_K_red=index_K-index_frihetsgrader_att_reducera;
+            var K_red=math.zeros(index_size_K_red,index_size_K_red);
+            
+            //Bestämer hur många iterationer av loopen som ska köras
+            var stop=index_K;
+            
+            
+            //Definierar lite variabler som behövs i loopen
+            //K_red har elementnummreringen (K_red_rad,K_red_kolon)
+            var K_red_rad=0;
+            var l_rad=0;//Variabeln som används för att hämta värden ifrån frihetsgrader_att_reducera 
+            
+            //Loopen kopierar in dom önskvärda elementen i K på rätt plats i den
+            //reducerade styvhetsmatrisen K_red.
+            for(i=0;i<stop;i++){
+                
+                //Förhindrar l_rad att bli större än size(frihetsgrader_att_reducera)
+                //Så programmet inte stoppas
+                if (l_rad==math.size(frihetsgrader_att_reducera)){
+                    l_rad--;
+                            }
+                var K_red_kolon=0;
+                var l_kolon=0;
+                var overhopp_rad=math.subset(frihetsgrader_att_reducera,math.index(l_rad));
+                
+                //Om rad "i" finns i frihetsgrader_att_reducera hoppar programmet
+                //över den iterationen
+                if(i==overhopp_rad){
+                    l_rad++;
+                }
+                else {
+                    for (j=0;j<stop;j++){
+                        //Förhindrar l_kolon att bli större än size(frihetsgrader_att_reducera)
+                        //Så programmet inte stoppas
+                        if (l_kolon==math.size(frihetsgrader_att_reducera)){
+                                l_kolon--;
+                            }
+                        var overhopp_kolon=math.subset(frihetsgrader_att_reducera,math.index(l_kolon));
+                        
+                        //Om kolon "j" finns i frihetsgrader_att_reducera hoppar programmet
+                        //över den iterationen
+                        if(j==overhopp_kolon){
+                            l_kolon++;
+                        }
+                        else {
+                            //Kopierar element (i,j) ifrån K
+                            var input=math.subset(K,math.index(i,j));
+                            //Ersätter element (K_red_rad,K_red_kolon) med input
+                            var K_red=math.subset(K_red,math.index(K_red_rad,K_red_kolon),input);
+                            K_red_kolon++;
+                            
+                        }
+                    }
+                    
+                    K_red_rad++;
+                    
+                }
+                
+            }
+           
+           
+            
+            //Allt här nedanför är utskrifter och helt överflödigt...
+           document.write(K_red);
+           document.write("<br> <br>");
+           //document.write(K);
+           document.write(math.inv(K_red));
+           
+          //hej 
+           
+    
+        </script>
+    </body>
+</html>
